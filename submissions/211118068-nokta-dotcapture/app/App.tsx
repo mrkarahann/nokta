@@ -3,7 +3,10 @@ import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
+  SafeAreaView as RNSafeAreaView,
+  StatusBar as RNStatusBar,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -111,6 +114,7 @@ export default function App() {
   const [specText, setSpecText] = useState("");
   const [loadingQuestions, setLoadingQuestions] = useState(false);
   const [loadingSpec, setLoadingSpec] = useState(false);
+  const [expandedSpec, setExpandedSpec] = useState(true);
 
   const hasAnswers = useMemo(
     () => qaItems.some((item) => item.answer.trim().length > 0),
@@ -187,175 +191,280 @@ export default function App() {
     setIdeaText("");
     setQaItems([]);
     setSpecText("");
+    setExpandedSpec(true);
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>NOKTA - Dot Capture & Enrich</Text>
-        <Text style={styles.subtitle}>
-          Ham fikri al, 5 soruyla netlestir, tek sayfa spec uret.
-        </Text>
+    <RNSafeAreaView style={styles.root}>
+      <StatusBar style="light" />
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.hero}>
+          <Text style={styles.heroEyebrow}>Track A - Dot Capture & Enrich</Text>
+          <Text style={styles.heroTitle}>Nokta Spec Pilot</Text>
+          <Text style={styles.heroSubtitle}>
+            Ham fikri netlestir, sorulari cevapla, tek sayfa urun spec'ini saniyeler icinde olustur.
+          </Text>
+          <View style={styles.progressRow}>
+            <View style={[styles.progressDot, styles.progressDone]} />
+            <View style={[styles.progressDot, qaItems.length > 0 ? styles.progressDone : styles.progressIdle]} />
+            <View style={[styles.progressDot, hasAnswers ? styles.progressDone : styles.progressIdle]} />
+            <View style={[styles.progressDot, specText.length > 0 ? styles.progressDone : styles.progressIdle]} />
+          </View>
+        </View>
 
-        <Text style={styles.sectionLabel}>1) Ham Fikir Girisi</Text>
-        <TextInput
-          value={ideaText}
-          onChangeText={setIdeaText}
-          placeholder="Ornek: Restoranlar icin talebe gore dinamik menu optimizasyonu"
-          multiline
-          style={styles.ideaInput}
-        />
-
-        <Pressable
-          style={styles.primaryButton}
-          onPress={handleGenerateQuestions}
-          disabled={loadingQuestions}
+        <ScrollView
+          contentContainerStyle={styles.container}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {loadingQuestions ? (
-            <ActivityIndicator color="#ffffff" />
-          ) : (
-            <Text style={styles.buttonText}>2) Sorulari Uret</Text>
-          )}
-        </Pressable>
-
-        {qaItems.length > 0 && (
           <View style={styles.card}>
-            <Text style={styles.sectionLabel}>3) Sorulari Cevapla</Text>
-            {qaItems.map((item, index) => (
-              <View key={`${item.question}-${index}`} style={styles.qaBlock}>
-                <Text style={styles.questionText}>
-                  {index + 1}. {item.question}
-                </Text>
-                <TextInput
-                  value={item.answer}
-                  onChangeText={(answer) => {
-                    setQaItems((prev) =>
-                      prev.map((entry, i) => (i === index ? { ...entry, answer } : entry)),
-                    );
-                  }}
-                  placeholder="Cevabini buraya yaz"
-                  multiline
-                  style={styles.answerInput}
-                />
-              </View>
-            ))}
-          </View>
-        )}
-
-        {qaItems.length > 0 && (
-          <Pressable
-            style={styles.primaryButton}
-            onPress={handleGenerateSpec}
-            disabled={loadingSpec}
-          >
-            {loadingSpec ? (
-              <ActivityIndicator color="#ffffff" />
-            ) : (
-              <Text style={styles.buttonText}>4) One-Page Spec Uret</Text>
-            )}
-          </Pressable>
-        )}
-
-        {specText.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>Spec Ciktisi</Text>
-            <Text selectable style={styles.specText}>
-              {specText}
+            <Text style={styles.sectionTitle}>1) Ham Fikir Girisi</Text>
+            <Text style={styles.sectionDescription}>
+              Fikrini 2-3 cumleyle yaz. Ne problem cozdugunu ve kimin icin oldugunu belirt.
             </Text>
+            <TextInput
+              value={ideaText}
+              onChangeText={setIdeaText}
+              placeholder="Ornek: Mahalle kafeleri icin gunluk talep tahmini ve atik azaltma asistani"
+              multiline
+              style={styles.ideaInput}
+            />
+            <Pressable
+              style={[styles.primaryButton, loadingQuestions && styles.primaryButtonDisabled]}
+              onPress={handleGenerateQuestions}
+              disabled={loadingQuestions}
+            >
+              {loadingQuestions ? (
+                <ActivityIndicator color="#ffffff" />
+              ) : (
+                <Text style={styles.buttonText}>2) AI Sorularini Uret</Text>
+              )}
+            </Pressable>
           </View>
-        )}
 
-        <Pressable style={styles.secondaryButton} onPress={resetAll}>
-          <Text style={styles.secondaryText}>Sifirla</Text>
-        </Pressable>
-      </ScrollView>
-    </SafeAreaView>
+          {qaItems.length > 0 && (
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>3) Engineering Sorulari</Text>
+              <Text style={styles.sectionDescription}>
+                Kisa ve net cevap ver. Bu cevaplar spec kalitesini dogrudan belirler.
+              </Text>
+              {qaItems.map((item, index) => (
+                <View key={`${item.question}-${index}`} style={styles.qaBlock}>
+                  <Text style={styles.questionText}>
+                    Soru {index + 1}: {item.question}
+                  </Text>
+                  <TextInput
+                    value={item.answer}
+                    onChangeText={(answer) => {
+                      setQaItems((prev) =>
+                        prev.map((entry, i) => (i === index ? { ...entry, answer } : entry)),
+                      );
+                    }}
+                    placeholder="Cevabini buraya yaz..."
+                    multiline
+                    style={styles.answerInput}
+                  />
+                </View>
+              ))}
+
+              <Pressable
+                style={[styles.primaryButton, loadingSpec && styles.primaryButtonDisabled]}
+                onPress={handleGenerateSpec}
+                disabled={loadingSpec}
+              >
+                {loadingSpec ? (
+                  <ActivityIndicator color="#ffffff" />
+                ) : (
+                  <Text style={styles.buttonText}>4) One-Page Spec Uret</Text>
+                )}
+              </Pressable>
+            </View>
+          )}
+
+          {specText.length > 0 && (
+            <View style={styles.card}>
+              <View style={styles.specHeader}>
+                <Text style={styles.sectionTitle}>Spec Ciktisi</Text>
+                <Pressable onPress={() => setExpandedSpec((prev) => !prev)} style={styles.toggleButton}>
+                  <Text style={styles.toggleButtonText}>{expandedSpec ? "Daralt" : "Genislet"}</Text>
+                </Pressable>
+              </View>
+              {expandedSpec && (
+                <Text selectable style={styles.specText}>
+                  {specText}
+                </Text>
+              )}
+            </View>
+          )}
+
+          <Pressable style={styles.secondaryButton} onPress={resetAll}>
+            <Text style={styles.secondaryText}>Tum Alani Temizle</Text>
+          </Pressable>
+        </ScrollView>
+      </SafeAreaView>
+    </RNSafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#0b1220",
+  },
   safeArea: {
     flex: 1,
-    backgroundColor: "#f3f6fb",
   },
-  container: {
-    padding: 16,
-    gap: 12,
+  hero: {
+    paddingTop: Platform.OS === "android" ? (RNStatusBar.currentHeight ?? 0) + 10 : 14,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    backgroundColor: "#111c3b",
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
-  title: {
-    fontSize: 22,
+  heroEyebrow: {
+    fontSize: 12,
+    color: "#a5b4fc",
     fontWeight: "700",
-    color: "#0f172a",
+    marginBottom: 6,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
-  subtitle: {
+  heroTitle: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: "800",
+    color: "#f8fafc",
+  },
+  heroSubtitle: {
+    marginTop: 8,
+    color: "#cbd5e1",
     fontSize: 14,
     lineHeight: 20,
-    color: "#334155",
-    marginBottom: 6,
   },
-  sectionLabel: {
-    fontSize: 16,
-    fontWeight: "700",
+  progressRow: {
+    marginTop: 14,
+    flexDirection: "row",
+    gap: 8,
+  },
+  progressDot: {
+    height: 7,
+    borderRadius: 999,
+    flex: 1,
+  },
+  progressDone: {
+    backgroundColor: "#22c55e",
+  },
+  progressIdle: {
+    backgroundColor: "#334155",
+  },
+  container: {
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 24,
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 17,
+    fontWeight: "800",
     color: "#0f172a",
-    marginBottom: 8,
+  },
+  sectionDescription: {
+    marginTop: 4,
+    color: "#475569",
+    fontSize: 13,
+    lineHeight: 18,
   },
   ideaInput: {
-    backgroundColor: "#ffffff",
+    marginTop: 10,
+    backgroundColor: "#f8fafc",
     borderWidth: 1,
     borderColor: "#cbd5e1",
-    borderRadius: 10,
-    minHeight: 100,
+    borderRadius: 12,
+    minHeight: 120,
     padding: 12,
     textAlignVertical: "top",
+    color: "#0f172a",
   },
   primaryButton: {
+    marginTop: 12,
     backgroundColor: "#2563eb",
-    borderRadius: 10,
+    borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryButtonDisabled: {
+    opacity: 0.75,
   },
   buttonText: {
     color: "#ffffff",
-    fontWeight: "700",
+    fontWeight: "800",
     fontSize: 15,
   },
   card: {
     backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "#dbeafe",
-    borderRadius: 12,
-    padding: 12,
-    gap: 10,
+    borderColor: "#e2e8f0",
+    borderRadius: 16,
+    padding: 14,
+    gap: 12,
+    shadowColor: "#0f172a",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
   },
   qaBlock: {
-    gap: 6,
+    gap: 8,
+    marginTop: 6,
   },
   questionText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     color: "#1e293b",
   },
   answerInput: {
     backgroundColor: "#f8fafc",
     borderWidth: 1,
     borderColor: "#cbd5e1",
-    borderRadius: 8,
-    minHeight: 70,
+    borderRadius: 10,
+    minHeight: 84,
     padding: 10,
     textAlignVertical: "top",
+    color: "#0f172a",
+  },
+  specHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  toggleButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: "#e2e8f0",
+  },
+  toggleButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#334155",
   },
   specText: {
+    marginTop: 8,
     color: "#0f172a",
-    lineHeight: 21,
+    lineHeight: 22,
+    fontSize: 13,
   },
   secondaryButton: {
+    backgroundColor: "#111827",
+    borderRadius: 12,
     alignItems: "center",
-    paddingVertical: 10,
-    marginBottom: 10,
+    paddingVertical: 12,
+    marginTop: 2,
   },
   secondaryText: {
-    color: "#475569",
-    fontWeight: "600",
+    color: "#e2e8f0",
+    fontWeight: "700",
   },
 });
